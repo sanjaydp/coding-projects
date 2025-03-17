@@ -33,7 +33,8 @@ class MultiAgentEnvironment:
         self.models = [PPO(state_size=2, action_size=4) for _ in range(num_predators)]
         self.memory = [deque(maxlen=1000) for _ in range(num_predators)]
 
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+        self.initialize_optimizer()
+
         self.gamma = 0.99
         self.epsilon = 0.1
         self.steps = 0
@@ -41,6 +42,9 @@ class MultiAgentEnvironment:
 
         self.fig, self.ax = plt.subplots()
         plt.ion()
+
+    def initialize_optimizer(self):
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 
     def get_new_position(self, agent, action):
         new_position = agent[:]
@@ -90,6 +94,9 @@ class MultiAgentEnvironment:
             loss = -tf.reduce_mean(tf.minimum(ratio * advantages, clip * advantages))
 
         gradients = tape.gradient(loss, model.trainable_variables)
+
+        # Reinitialize the optimizer to avoid state errors
+        self.initialize_optimizer()
         self.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
     def move_predators(self):
@@ -134,8 +141,8 @@ class MultiAgentEnvironment:
 
     def train(self, episodes=500):
         for episode in range(episodes):
-            self.predators = [[random.randint(0, self.grid_size - 1), random.randint(0, grid_size - 1)] for _ in range(self.num_predators)]
-            self.prey = [[random.randint(0, grid_size - 1), random.randint(0, grid_size - 1)] for _ in range(self.num_prey)]
+            self.predators = [[random.randint(0, self.grid_size - 1), random.randint(0, self.grid_size - 1)] for _ in range(self.num_predators)]
+            self.prey = [[random.randint(0, self.grid_size - 1), random.randint(0, self.grid_size - 1)] for _ in range(self.num_prey)]
             steps = 0
             while self.prey and steps < 100:
                 self.move_predators()
