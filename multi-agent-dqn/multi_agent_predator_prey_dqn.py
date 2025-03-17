@@ -33,8 +33,12 @@ class MultiAgentEnvironment:
         self.models = [PPO(state_size=2, action_size=4) for _ in range(num_predators)]
         self.memory = [deque(maxlen=1000) for _ in range(num_predators)]
 
-        self.roles = ["Chaser", "Blocker", "Scout"] * (num_predators // 3)
+        self.predator_roles = ["Chaser", "Blocker", "Scout"] * (num_predators // 3)
+        self.prey_roles = ["Leader", "Decoy"] * (num_prey // 2)
+
         self.short_term_memory = [deque(maxlen=50) for _ in range(num_predators)]
+
+        self.leader_predator = 0
 
         self.initialize_optimizer()
 
@@ -77,11 +81,10 @@ class MultiAgentEnvironment:
                     reward += 2
                 self.prey.remove(prey)
                 self.share_knowledge(predator)
-                self.cooperation_bonus(predator)
+                reward += self.cooperation_bonus(predator)
         return reward
 
     def cooperation_bonus(self, predator):
-        # Reward for team play
         for other_predator in self.predators:
             if other_predator != predator and self.get_distance(predator, other_predator) < 2:
                 return 2
@@ -119,7 +122,6 @@ class MultiAgentEnvironment:
         self.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
     def share_knowledge(self, predator):
-        # Share prey position with other predators
         for other in self.predators:
             if other != predator:
                 print(f"Predator at {predator} signals prey location to predator at {other}")
@@ -129,7 +131,7 @@ class MultiAgentEnvironment:
             state = self.get_state(predator)
             action = self.select_action(self.models[i], state)
             new_position = self.get_new_position(predator, action)
-            reward = self.reward(new_position, self.roles[i])
+            reward = self.reward(new_position, self.predator_roles[i])
             next_state = self.get_state(new_position)
 
             self.memory[i].append((state, action, reward, next_state))
@@ -142,10 +144,15 @@ class MultiAgentEnvironment:
                 self.memory[i].clear()
 
     def move_prey(self):
-        for prey in self.prey:
+        for i, prey in enumerate(self.prey):
             action = random.choice(range(4))
             new_position = self.get_new_position(prey, action)
             prey[0], prey[1] = new_position[0], new_position[1]
+
+            if self.prey_roles[i] == "Decoy":
+                if random.random() < 0.2:
+                    new_position = self.get_new_position(prey, random.choice(range(4)))
+                    prey[0], prey[1] = new_position[0], new_position[1]
 
     def render_heatmap(self):
         plt.figure(figsize=(6, 6))

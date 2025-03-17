@@ -113,5 +113,13 @@ Success rate over episodes
 🔥 Adaptive Prey Strategy – Prey actively tries to mislead predators.
 🔥 Short-Term Memory – Agents now adapt based on recent experiences.
 
+### Final Version Features 
+✅ PPO-based learning  
+✅ Predator roles: Chaser, Blocker, Scout  
+✅ Prey roles: Leader, Decoy  
+✅ Real-time communication between predators  
+✅ Dynamic reward system  
+✅ Heatmap visualization of movement  
+
 ### How to Run
 python multi-agent-dqn/multi_agent_predator_prey_dqn.py
