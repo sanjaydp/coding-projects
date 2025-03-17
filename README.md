@@ -72,5 +72,38 @@ Track areas with higher activity and hunting success rates.
 Track average reward, episode length, and prey caught over time.
 Monitor training stability and learning rate.
 
+🚀 Next-Level Enhancements:
+✅ 1. Competitive Learning Between Predators
+Introduce a reward hierarchy:
+Predators get individual rewards for catching prey.
+Add a bonus reward for teamwork (if more than one predator participates).
+Add a penalty for interfering with another predator’s catch.
+✅ 2. Introduce Predator "Roles"
+Assign different behaviors to predators:
+Chasers – Aggressive, high-reward for capture.
+Blockers – Defend territory and reduce prey escape options.
+Scouts – Locate prey and communicate positions to others.
+✅ 3. Multi-Agent Cooperation and Competition
+Add communication between predators to form temporary alliances.
+Include probabilistic betrayal — predators may defect for higher individual rewards.
+✅ 4. Adaptive Prey Strategy
+Prey should adapt dynamically:
+Form groups when threatened.
+Introduce a leader-following mechanism for coordinated movement.
+Prey can start “decoying” to mislead predators.
+✅ 5. Memory for Prey and Predators
+Implement a short-term memory:
+Agents remember past actions and outcomes.
+Use this to improve decision-making.
+✅ 6. Reinforcement Learning with PPO (Proximal Policy Optimization)
+Upgrade from DQN to PPO for more stable learning:
+PPO handles continuous action spaces better.
+PPO helps reduce overfitting and instability.
+✅ 7. Add Logging to TensorBoard
+Log the following metrics:
+Average reward per episode
+Average number of steps to capture
+Success rate over episodes
+
 ### How to Run
 python multi-agent-dqn/multi_agent_predator_prey_dqn.py
