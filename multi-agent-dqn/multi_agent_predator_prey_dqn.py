@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
+import seaborn as sns
 import time
 
 # Define the DQN model
@@ -33,23 +34,26 @@ class MultiAgentEnvironment:
         for model, target_model in zip(self.models, self.target_models):
             target_model.set_weights(model.get_weights())
 
+        self.prey_q_table = np.zeros((grid_size, grid_size, 4))
+
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         self.gamma = 0.99
         self.epsilon = 0.1
         self.steps = 0
+        self.heatmap = np.zeros((grid_size, grid_size))
 
         self.fig, self.ax = plt.subplots()
         plt.ion()
 
     def get_new_position(self, agent, action):
         new_position = agent[:]
-        if action == 0 and agent[1] > 0: # UP
+        if action == 0 and agent[1] > 0:
             new_position[1] -= 1
-        elif action == 1 and agent[1] < self.grid_size - 1: # DOWN
+        elif action == 1 and agent[1] < self.grid_size - 1:
             new_position[1] += 1
-        elif action == 2 and agent[0] > 0: # LEFT
+        elif action == 2 and agent[0] > 0:
             new_position[0] -= 1
-        elif action == 3 and agent[0] < self.grid_size - 1: # RIGHT
+        elif action == 3 and agent[0] < self.grid_size - 1:
             new_position[0] += 1
         return new_position
 
@@ -82,6 +86,18 @@ class MultiAgentEnvironment:
         else:
             return np.argmax(model(state[None])[0].numpy())
 
+    def select_prey_action(self, prey):
+        state = tuple(prey)
+        if random.uniform(0, 1) < self.epsilon:
+            return random.choice(range(4))
+        else:
+            return np.argmax(self.prey_q_table[state[0], state[1]])
+
+    def update_prey_q_table(self, state, action, reward, next_state):
+        best_next_action = np.argmax(self.prey_q_table[next_state[0], next_state[1]])
+        target = reward + self.gamma * self.prey_q_table[next_state[0], next_state[1], best_next_action]
+        self.prey_q_table[state[0], state[1], action] += self.epsilon * (target - self.prey_q_table[state[0], state[1], action])
+
     def share_knowledge(self):
         prey_positions = [tuple(prey) for prey in self.prey]
         for predator in self.predators:
@@ -98,43 +114,27 @@ class MultiAgentEnvironment:
             self.update_dqn(self.models[i], self.target_models[i], state, action, reward, next_state)
 
             predator[0], predator[1] = new_position[0], new_position[1]
-
-            self.apply_flocking(predator)
+            self.heatmap[new_position[1], new_position[0]] += 1
 
     def move_prey(self):
         for prey in self.prey:
-            action = random.choice(range(4))
+            state = tuple(prey)
+            action = self.select_prey_action(prey)
             new_position = self.get_new_position(prey, action)
             prey[0], prey[1] = new_position[0], new_position[1]
 
-    def apply_flocking(self, predator):
-        alignment = [0, 0]
-        cohesion = [0, 0]
-        separation = [0, 0]
-        num_neighbors = 0
+            reward = -0.1
+            for predator in self.predators:
+                if predator == prey:
+                    reward += -10
+            next_state = tuple(new_position)
+            self.update_prey_q_table(state, action, reward, next_state)
 
-        for other in self.predators:
-            if other != predator:
-                dist = self.distance(predator, other)
-                if dist < 3:
-                    alignment[0] += other[0]
-                    alignment[1] += other[1]
-                    cohesion[0] += other[0]
-                    cohesion[1] += other[1]
-                    separation[0] += predator[0] - other[0]
-                    separation[1] += predator[1] - other[1]
-                    num_neighbors += 1
-
-        if num_neighbors > 0:
-            alignment = [x / num_neighbors for x in alignment]
-            cohesion = [x / num_neighbors for x in cohesion]
-            separation = [x / num_neighbors for x in separation]
-
-            predator[0] += (alignment[0] + cohesion[0] + separation[0]) / 3
-            predator[1] += (alignment[1] + cohesion[1] + separation[1]) / 3
-
-    def distance(self, pos1, pos2):
-        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+    def render_heatmap(self):
+        plt.figure(figsize=(6, 6))
+        sns.heatmap(self.heatmap, cmap='coolwarm', cbar=True)
+        plt.title('Predator Movement Heatmap')
+        plt.show()
 
     def render(self):
         grid = np.zeros((self.grid_size, self.grid_size))
@@ -159,6 +159,9 @@ class MultiAgentEnvironment:
                 self.render()
                 steps += 1
             print(f"Episode {episode + 1}/{episodes} - Steps: {steps}")
+
+            if (episode + 1) % 10 == 0:
+                self.render_heatmap()
 
 # Run the environment
 env = MultiAgentEnvironment(grid_size=10, num_predators=3, num_prey=2)

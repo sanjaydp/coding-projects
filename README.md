@@ -40,10 +40,6 @@ python multi-agent-rl/predator_prey_qlearning.py
 ## 3. Advanced Multi-Agent Predator-Prey Simulation with DQN
 - Multi-agent system using Deep Q-Learning (DQN) with communication, flocking, and adaptive prey behavior.
 
-✅ Why SARSA?
-SARSA considers the next action in the update equation, leading to more stable learning.
-SARSA handles stochastic environments better than Q-Learning.
-
 ✅ Why DQN?
 Handle larger state-action spaces using neural networks.
 Handle continuous state spaces better than tabular methods.
@@ -61,6 +57,20 @@ Prey can also learn using SARSA or DQN.
 ✅ Why Team Rewards?
 Encourage cooperation over selfish behavior.
 Higher reward when multiple predators contribute to catching prey.
+
+🚀 Next-Level Enhancements:
+✅ 1. SARSA-Based Prey Learning
+Prey will no longer move randomly — it will learn using SARSA (State-Action-Reward-State-Action).
+This introduces competition between learning predators and learning prey.
+✅ 2. Reward Balancing for Cooperation vs Individual Reward
+Predators will receive higher rewards for teamwork.
+Adjust reward scaling to favor cooperative behavior.
+✅ 3. Heatmap Visualization
+Show predator and prey movements over time using a heatmap.
+Track areas with higher activity and hunting success rates.
+✅ 4. TensorBoard Logging
+Track average reward, episode length, and prey caught over time.
+Monitor training stability and learning rate.
 
 ### How to Run
 python multi-agent-dqn/multi_agent_predator_prey_dqn.py
