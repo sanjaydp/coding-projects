@@ -33,6 +33,9 @@ class MultiAgentEnvironment:
         self.models = [PPO(state_size=2, action_size=4) for _ in range(num_predators)]
         self.memory = [deque(maxlen=1000) for _ in range(num_predators)]
 
+        self.roles = ["Chaser", "Blocker", "Scout"] * (num_predators // 3)
+        self.short_term_memory = [deque(maxlen=50) for _ in range(num_predators)]
+
         self.initialize_optimizer()
 
         self.gamma = 0.99
@@ -61,13 +64,31 @@ class MultiAgentEnvironment:
     def get_state(self, agent):
         return np.array(agent) / self.grid_size
 
-    def reward(self, predator):
+    def reward(self, predator, role):
         reward = -0.01
         for prey in self.prey:
             if predator == prey:
                 reward += 10
+                if role == "Chaser":
+                    reward += 5
+                elif role == "Blocker":
+                    reward += 3
+                elif role == "Scout":
+                    reward += 2
                 self.prey.remove(prey)
+                self.share_knowledge(predator)
+                self.cooperation_bonus(predator)
         return reward
+
+    def cooperation_bonus(self, predator):
+        # Reward for team play
+        for other_predator in self.predators:
+            if other_predator != predator and self.get_distance(predator, other_predator) < 2:
+                return 2
+        return 0
+
+    def get_distance(self, pos1, pos2):
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
 
     def select_action(self, model, state):
         state = np.reshape(state, (1, 2))
@@ -94,17 +115,21 @@ class MultiAgentEnvironment:
             loss = -tf.reduce_mean(tf.minimum(ratio * advantages, clip * advantages))
 
         gradients = tape.gradient(loss, model.trainable_variables)
-
-        # Reinitialize the optimizer to avoid state errors
         self.initialize_optimizer()
         self.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+
+    def share_knowledge(self, predator):
+        # Share prey position with other predators
+        for other in self.predators:
+            if other != predator:
+                print(f"Predator at {predator} signals prey location to predator at {other}")
 
     def move_predators(self):
         for i, predator in enumerate(self.predators):
             state = self.get_state(predator)
             action = self.select_action(self.models[i], state)
             new_position = self.get_new_position(predator, action)
-            reward = self.reward(new_position)
+            reward = self.reward(new_position, self.roles[i])
             next_state = self.get_state(new_position)
 
             self.memory[i].append((state, action, reward, next_state))
@@ -128,17 +153,6 @@ class MultiAgentEnvironment:
         plt.title('Predator Movement Heatmap')
         plt.show()
 
-    def render(self):
-        grid = np.zeros((self.grid_size, self.grid_size))
-        for predator in self.predators:
-            grid[predator[1], predator[0]] = 1
-        for prey in self.prey:
-            grid[prey[1], prey[0]] = 2
-        self.ax.clear()
-        self.ax.matshow(grid, cmap="coolwarm")
-        plt.draw()
-        plt.pause(0.1)
-
     def train(self, episodes=500):
         for episode in range(episodes):
             self.predators = [[random.randint(0, self.grid_size - 1), random.randint(0, self.grid_size - 1)] for _ in range(self.num_predators)]
@@ -147,12 +161,8 @@ class MultiAgentEnvironment:
             while self.prey and steps < 100:
                 self.move_predators()
                 self.move_prey()
-                self.render()
                 steps += 1
             print(f"Episode {episode + 1}/{episodes} - Steps: {steps}")
-
-            if (episode + 1) % 10 == 0:
-                self.render_heatmap()
 
 # Run the environment
 env = MultiAgentEnvironment(grid_size=10, num_predators=3, num_prey=2)

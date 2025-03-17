@@ -105,5 +105,13 @@ Average reward per episode
 Average number of steps to capture
 Success rate over episodes
 
+✅ The code is now upgraded with elite-level MAS complexity:
+
+🔥 Predator Roles – Predators now take on Chaser, Blocker, and Scout roles.
+🔥 Competitive and Cooperative Rewards – Higher rewards for team play; penalties for selfish behavior.
+🔥 Multi-Agent Communication – Predators share information to improve hunting strategy.
+🔥 Adaptive Prey Strategy – Prey actively tries to mislead predators.
+🔥 Short-Term Memory – Agents now adapt based on recent experiences.
+
 ### How to Run
 python multi-agent-dqn/multi_agent_predator_prey_dqn.py
